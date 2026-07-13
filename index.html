@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Шырақ — сабақ ойыны генераторы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF6EA;
+    --bg-warm:#F5ECD8;
+    --ink:#20263A;
+    --ink-soft:#5B627A;
+    --flame:#F5A623;
+    --flame-dark:#D9820B;
+    --flame-light:#FFD98A;
+    --steppe:#2F6F63;
+    --sky:#2B6CB0;
+    --card:#FFFFFF;
+    --line:#E7DEC6;
+    --danger:#D64550;
+    --success:#2F9E5B;
+    --shadow: 0 10px 30px -12px rgba(32,38,58,.18);
+    --r: 18px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Manrope',sans-serif;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, var(--bg-warm), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+  .lamp{width:46px;height:46px;flex:none;position:relative;}
+  .lamp .flame{
+    position:absolute;left:50%;top:2px;width:14px;height:20px;
+    transform:translateX(-50%);
+    background:radial-gradient(circle at 50% 30%, #FFF3D0 0%, var(--flame) 45%, var(--flame-dark) 100%);
+    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation:flicker 2.6s ease-in-out infinite;
+    filter:drop-shadow(0 0 6px rgba(245,166,35,.7));
+  }
+  .lamp .base{
+    position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+    width:34px;height:16px;border-radius:6px 6px 12px 12px;
+    background:linear-gradient(180deg,var(--sky),#1f4f80);
+  }
+  @keyframes flicker{
+    0%,100%{transform:translateX(-50%) scale(1) rotate(0deg);}
+    30%{transform:translateX(-52%) scale(1.05,0.95) rotate(-3deg);}
+    55%{transform:translateX(-48%) scale(0.96,1.06) rotate(2deg);}
+    80%{transform:translateX(-51%) scale(1.02,0.98) rotate(-1deg);}
+  }
+  h1{font-family:'Fredoka',sans-serif;font-size:30px;margin:0;letter-spacing:.2px;}
+  .tagline{color:var(--ink-soft);font-size:15px;margin:6px 0 30px;max-width:52ch;line-height:1.5;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:26px;box-shadow:var(--shadow);
+  }
+  label{display:block;font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:7px;text-transform:uppercase;letter-spacing:.4px;}
+  .field{margin-bottom:20px;}
+  input[type=text], select{
+    width:100%;border:2px solid var(--line);border-radius:12px;padding:13px 14px;
+    font-family:'Manrope',sans-serif;font-size:16px;color:var(--ink);background:#FFFDF8;
+    transition:border-color .15s;
+  }
+  input[type=text]:focus, select:focus{outline:none;border-color:var(--flame);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .choice-group{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .choice{
+    border:2px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;
+    font-size:14px;font-weight:600;color:var(--ink-soft);background:#FFFDF8;
+    display:flex;align-items:center;gap:8px;transition:all .15s;
+  }
+  .choice:hover{border-color:var(--flame-light);}
+  .choice.active{border-color:var(--flame);background:#FFF6E3;color:var(--ink);}
+  .choice .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;}
+  .choice.active .dot{background:var(--flame);}
+  .go-btn{
+    margin-top:6px;width:100%;border:none;border-radius:14px;padding:16px;
+    font-family:'Fredoka',sans-serif;font-size:18px;font-weight:600;color:#20140a;
+    background:linear-gradient(180deg,var(--flame-light),var(--flame));
+    cursor:pointer;box-shadow:0 8px 18px -8px rgba(217,130,11,.6);
+    transition:transform .1s;
+  }
+  .go-btn:hover{transform:translateY(-1px);}
+  .go-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+  .hint{font-size:13px;color:var(--ink-soft);margin-top:10px;line-height:1.5;}
+  .loading{text-align:center;padding:60px 20px;}
+  .loading .lamp{margin:0 auto 22px;transform:scale(1.6);}
+  .loading p{font-family:'Fredoka',sans-serif;font-size:18px;color:var(--ink-soft);}
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;background:#FFF6E3;color:var(--flame-dark);
+    border:1px solid var(--flame-light);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;
+  }
+  .ghost-btn{
+    background:transparent;border:2px solid var(--line);border-radius:10px;padding:9px 16px;
+    font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;color:var(--ink-soft);cursor:pointer;
+  }
+  .ghost-btn:hover{border-color:var(--ink-soft);color:var(--ink);}
+  .err{background:#FDECEC;border:1px solid #F3B9BD;color:#9A2530;border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.5;}
+
+  /* ---- KAHOOT ---- */
+  .kq-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .kq-progress{font-size:13px;font-weight:700;color:var(--ink-soft);}
+  .kq-score{font-family:'Fredoka',sans-serif;font-size:16px;color:var(--steppe);}
+  .kq-question{
+    background:var(--ink);color:#fff;border-radius:16px;padding:26px 24px;font-family:'Fredoka',sans-serif;
+    font-size:21px;line-height:1.4;text-align:center;margin-bottom:16px;min-height:90px;display:flex;align-items:center;justify-content:center;
+  }
+  .kq-timer-track{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:20px;}
+  .kq-timer-fill{height:100%;background:var(--flame);border-radius:99px;transition:width 1s linear;}
+  .kq-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .kq-opt{
+    border:none;border-radius:14px;padding:20px 16px;font-family:'Manrope',sans-serif;font-weight:700;font-size:15px;
+    color:#fff;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;min-height:70px;
+    transition:transform .08s, filter .15s;
+  }
+  .kq-opt:hover{filter:brightness(1.06);}
+  .kq-opt:active{transform:scale(.98);}
+  .kq-opt.o0{background:#D64550;} .kq-opt.o1{background:#2B6CB0;}
+  .kq-opt.o2{background:#E8A400;} .kq-opt.o3{background:#2F9E5B;}
+  .kq-opt .shape{width:16px;height:16px;flex:none;}
+  .kq-opt.correct{outline:4px solid #1a2e1a;}
+  .kq-opt.wrong{opacity:.35;}
+  .kq-opt[disabled]{cursor:default;}
+  .kq-summary{text-align:center;padding:30px 10px;}
+  .kq-summary .big{font-family:'Fredoka',sans-serif;font-size:44px;color:var(--flame-dark);}
+
+  /* ---- MATCH ---- */
+  .mt-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .mt-item{
+    border:2px solid var(--line);background:#FFFDF8;border-radius:12px;padding:14px 16px;font-size:14px;
+    cursor:pointer;font-weight:600;transition:all .12s;min-height:56px;display:flex;align-items:center;
+  }
+  .mt-item.sel{border-color:var(--sky);background:#EAF2FB;}
+  .mt-item.done{border-color:var(--success);background:#EAF8EF;color:var(--success);cursor:default;}
+  .mt-item.wrongflash{border-color:var(--danger);background:#FDECEC;}
+
+  /* ---- JEOPARDY ---- */
+  .jp-board{display:grid;gap:10px;}
+  .jp-cat-name{
+    font-family:'Fredoka',sans-serif;text-align:center;background:var(--sky);color:#fff;
+    border-radius:10px;padding:10px 6px;font-size:14px;
+  }
+  .jp-cell{
+    background:var(--ink);color:var(--flame-light);border-radius:10px;padding:22px 6px;text-align:center;
+    font-family:'Fredoka',sans-serif;font-size:20px;cursor:pointer;transition:filter .12s;
+  }
+  .jp-cell:hover{filter:brightness(1.25);}
+  .jp-cell.used{background:#DDD6C1;color:#B9AF92;cursor:default;}
+  .jp-modal-bg{position:fixed;inset:0;background:rgba(20,20,25,.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .jp-modal{background:var(--ink);color:#fff;border-radius:20px;padding:36px 30px;max-width:560px;width:100%;text-align:center;}
+  .jp-modal .val{color:var(--flame);font-family:'Fredoka',sans-serif;font-size:14px;margin-bottom:14px;}
+  .jp-modal .q{font-size:20px;line-height:1.5;margin-bottom:18px;}
+  .jp-modal .a{font-size:17px;color:var(--flame-light);margin-bottom:20px;min-height:24px;}
+  .jp-modal-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .jp-modal-btns button{border:none;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;}
+  .jp-score-bar{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .jp-team{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+  .jp-team b{font-family:'Fredoka',sans-serif;font-size:18px;min-width:34px;text-align:center;}
+  .jp-team button{border:1px solid var(--line);background:#FFFDF8;border-radius:8px;width:26px;height:26px;cursor:pointer;font-weight:800;}
+
+  /* ---- CROSSWORD ---- */
+  .cw-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;}
+  .cw-grid{display:grid;gap:2px;background:var(--line);border:2px solid var(--ink);border-radius:4px;overflow:hidden;}
+  .cw-cell{width:32px;height:32px;background:var(--ink);position:relative;}
+  .cw-cell.on{background:#FFFDF8;}
+  .cw-cell.on input{
+    width:100%;height:100%;border:none;background:transparent;text-align:center;text-transform:uppercase;
+    font-weight:800;font-size:15px;color:var(--ink);
+  }
+  .cw-cell.on input:focus{outline:2px solid var(--flame);}
+  .cw-num{position:absolute;top:1px;left:2px;font-size:8px;color:var(--ink-soft);font-weight:700;}
+  .cw-clues{flex:1;min-width:220px;}
+  .cw-clues h4{font-family:'Fredoka',sans-serif;margin:0 0 8px;font-size:14px;color:var(--steppe);}
+  .cw-clues ol{margin:0 0 16px;padding-left:20px;font-size:13.5px;line-height:1.6;}
+  .cw-cell.on.correct input{color:var(--success);}
+  .cw-cell.on.wrong input{color:var(--danger);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="lamp"><div class="flame"></div><div class="base"></div></div>
+    <div>
+      <h1>Шырақ</h1>
+    </div>
+  </div>
+  <p class="tagline">Тақырыпты жаз — жасанды интеллект сол сабаққа арнап ойын құрастырады. Форматы әр сабақ сайын өзгеріп отырады, сингапурлық құрылымдар секілді.</p>
+  <div id="app"></div>
+</div>
+
+<script>
+const FORMATS = [
+  {id:"kahoot", label:"Kahoot-квиз", icon:"⚡"},
+  {id:"match", label:"Wordwall-сәйкестендіру", icon:"🔗"},
+  {id:"jeopardy", label:"Дорба (Jeopardy)", icon:"🎯"},
+  {id:"crossword", label:"Кроссворд", icon:"▦"},
+];
+const MODES = [
+  {id:"solo", label:"Жеке оқушы (өз құрылғысы)"},
+  {id:"class", label:"Бүкіл сынып (проектор)"},
+  {id:"each", label:"Әр оқушы өз құрылғысымен"},
+];
+
+let state = { screen:"setup", topic:"", grade:"", subject:"Қазақстан тарихы", subjectCustom:"", format:"random", mode:"class", data:null, resolvedFormat:null, error:null };
+
+const SUBJECTS = [
+  "Қазақстан тарихы","Дүниежүзі тарихы","Биология","География",
+  "Информатика","Ағылшын тілі","Жаратылыстану","Қазақ тілі мен әдебиеті",
+  "Математика","Басқа пән"
+];
+
+const app = document.getElementById("app");
+
+function getRecentFormats(){
+  try{
+    const raw = localStorage.getItem("shyraq_recent_formats");
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function pushRecentFormat(id){
+  try{
+    let recent = getRecentFormats();
+    recent = [id, ...recent.filter(x=>x!==id)].slice(0,2);
+    localStorage.setItem("shyraq_recent_formats", JSON.stringify(recent));
+  }catch(e){ /* localStorage optional */ }
+}
+async function resolveFormat(choice){
+  if(choice !== "random") return choice;
+  const recent = getRecentFormats();
+  const pool = FORMATS.map(f=>f.id).filter(id => !recent.includes(id));
+  const options = pool.length ? pool : FORMATS.map(f=>f.id).filter(id => id !== recent[0]);
+  return options[Math.floor(Math.random()*options.length)];
+}
+
+function render(){
+  if(state.screen==="setup") return renderSetup();
+  if(state.screen==="loading") return renderLoading();
+  if(state.screen==="error") return renderError();
+  if(state.screen==="game") return renderGame();
+}
+
+function renderSetup(){
+  app.innerHTML = `
+    <div class="card">
+      <div class="field">
+        <label>Пән</label>
+        <select id="subjectInput">
+          ${SUBJECTS.map(s=>`<option value="${s}" ${state.subject===s?'selected':''}>${s}</option>`).join("")}
+        </select>
+        ${state.subject==="Басқа пән" ? `<input type="text" id="subjectCustomInput" placeholder="Пәнді жазыңыз" value="${escapeHtml(state.subjectCustom)}" style="margin-top:10px;">` : ""}
+      </div>
+      <div class="field">
+        <label>Сабақтың тақырыбы</label>
+        <input type="text" id="topicInput" placeholder="мыс. Қарахан мемлекеті / Клетка құрылысы / Loops in Python" value="${escapeHtml(state.topic)}">
+      </div>
+      <div class="field">
+        <label>Сынып (міндетті емес)</label>
+        <input type="text" id="gradeInput" placeholder="мыс. 6-сынып" value="${escapeHtml(state.grade)}">
+      </div>
+      <div class="field">
+        <label>Ойын форматы</label>
+        <div class="choice-group" id="formatGroup">
+          <div class="choice ${state.format==='random'?'active':''}" data-format="random"><span class="dot"></span>Кездейсоқ (әр сабақта басқа)</div>
+          ${FORMATS.map(f=>`<div class="choice ${state.format===f.id?'active':''}" data-format="${f.id}"><span class="dot"></span>${f.icon} ${f.label}</div>`).join("")}
+        </div>
+      </div>
+      <div class="field">
+        <label>Ойнау режимі</label>
+        <div class="choice-group" id="modeGroup">
+          ${MODES.map(m=>`<div class="choice ${state.mode===m.id?'active':''}" data-mode="${m.id}"><span class="dot"></span>${m.label}</div>`).join("")}
+        </div>
+      </div>
+      <button class="go-btn" id="goBtn">Ойын жасау 🔥</button>
+      <p class="hint">Әр басқанда AI жаңа сұрақтар құрастырады — сол тақырыпты қайта енгізіп, басқа нұсқасын да ала аласыз.</p>
+    </div>
+  `;
+  document.getElementById("subjectInput").onchange = e => { state.subject = e.target.value; render(); };
+  const subjCustom = document.getElementById("subjectCustomInput");
+  if(subjCustom) subjCustom.oninput = e => state.subjectCustom = e.target.value;
+  document.getElementById("topicInput").oninput = e => state.topic = e.target.value;
+  document.getElementById("gradeInput").oninput = e => state.grade = e.target.value;
+  document.getElementById("formatGroup").onclick = e => {
+    const c = e.target.closest(".choice"); if(!c) return;
+    state.format = c.dataset.format; render();
+  };
+  document.getElementById("modeGroup").onclick = e => {
+    const c = e.target.closest(".choice"); if(!c) return;
+    state.mode = c.dataset.mode; render();
+  };
+  document.getElementById("goBtn").onclick = startGeneration;
+}
+
+function renderLoading(){
+  app.innerHTML = `
+    <div class="card loading">
+      <div class="lamp"><div class="flame"></div><div class="base"></div></div>
+      <p id="loadingMsg">Шырақ жанып тұр, сұрақтар құрастырылуда...</p>
+    </div>
+  `;
+  const msgs = [
+    "Тақырыпты оқып жатыр...",
+    "Сұрақтар құрастырылуда...",
+    "Дұрыс жауаптар тексерілуде...",
+    "Ойынды сәндеп жатыр...",
+  ];
+  let i=0;
+  const el = document.getElementById("loadingMsg");
+  const iv = setInterval(()=>{ i=(i+1)%msgs.length; if(el) el.textContent = msgs[i]; }, 1400);
+  state._loadingInterval = iv;
+}
+
+function renderError(){
+  app.innerHTML = `
+    <div class="card">
+      <div class="err">${escapeHtml(state.error || "Белгісіз қате шықты.")}</div>
+      <button class="go-btn" style="margin-top:16px" id="retryBtn">Қайта көру</button>
+    </div>
+  `;
+  document.getElementById("retryBtn").onclick = ()=>{ state.screen="setup"; render(); };
+}
+
+function topBar(){
+  const fmt = FORMATS.find(f=>f.id===state.resolvedFormat);
+  const mode = MODES.find(m=>m.id===state.mode);
+  const subjectName = state.subject === "Басқа пән" ? (state.subjectCustom.trim() || "Пән") : state.subject;
+  return `
+    <div class="top-bar">
+      <div>
+        <span class="pill">${fmt.icon} ${fmt.label}</span>
+        <span class="pill" style="background:#EAF2FB;color:#1f4f80;border-color:#BBD6EF;">${mode.label}</span>
+        <span class="pill" style="background:#EAF8EF;color:#1f6b3d;border-color:#BFE6CE;">${escapeHtml(subjectName)}</span>
+      </div>
+      <button class="ghost-btn" id="newGameBtn">← Жаңа ойын</button>
+    </div>
+  `;
+}
+function bindTopBar(){
+  document.getElementById("newGameBtn").onclick = ()=>{ state.screen="setup"; state.data=null; render(); };
+}
+
+function renderGame(){
+  let inner = "";
+  if(state.resolvedFormat==="kahoot") inner = kahootHtml();
+  else if(state.resolvedFormat==="match") inner = matchHtml();
+  else if(state.resolvedFormat==="jeopardy") inner = jeopardyHtml();
+  else if(state.resolvedFormat==="crossword") inner = crosswordHtml();
+  app.innerHTML = topBar() + `<div class="card">${inner}</div>`;
+  bindTopBar();
+  if(state.resolvedFormat==="kahoot") bindKahoot();
+  else if(state.resolvedFormat==="match") bindMatch();
+  else if(state.resolvedFormat==="jeopardy") bindJeopardy();
+  else if(state.resolvedFormat==="crossword") bindCrossword();
+}
+
+function escapeHtml(s){
+  return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ================= AI CALL ================= */
+
+async function startGeneration(){
+  if(!state.topic.trim()){
+    state.error = "Алдымен тақырыпты жазыңыз.";
+    state.screen = "error"; render(); return;
+  }
+  state.resolvedFormat = await resolveFormat(state.format);
+  state.screen = "loading"; render();
+
+  const schemaPrompts = {
+    kahoot: `JSON пішімі: {"qs":[{"q":"сұрақ мәтіні","o":["A нұсқа","B нұсқа","C нұсқа","D нұсқа"],"a":0}]}. "a" — дұрыс жауаптың индексі (0-3). Дәл 6 сұрақ жаса.`,
+    match: `JSON пішімі: {"p":[{"t":"термин","d":"анықтама"}]}. Дәл 6 жұп жаса. Термин 1-3 сөз, анықтама қысқа (10 сөзден аспасын).`,
+    jeopardy: `JSON пішімі: {"c":[{"n":"санат аты","qs":[{"v":100,"q":"сұрақ","a":"жауап"}]}]}. 3 санат, әр санатта 3 сұрақ (ұпайлары: 100, 200, 300 — қиындығы артатындай). Жауаптар қысқа болсын.`,
+    crossword: `JSON пішімі: {"w":[{"w":"СӨЗ","c":"қысқа анықтама"}]}. Дәл 6 сөз жаса. Әр сөз — біріккен әріптерден тұратын жалғыз кириллица сөз (бос орынсыз, дефиссіз), бас әріптермен.`,
+  };
+
+  const subjectName = state.subject === "Басқа пән" ? (state.subjectCustom.trim() || "жалпы білім") : state.subject;
+  const isEnglish = subjectName === "Ағылшын тілі";
+  const languageNote = isEnglish
+    ? `Бұл — Ағылшын тілі сабағы. Сұрақтар мен нұсқаларды ағылшын тілінде жаз (сөздік қор/грамматика/оқылым тақырыбына сай), тек анықтама/нұсқаулық бөлігі қазақша болуы мүмкін.`
+    : subjectName === "Информатика"
+      ? `Бұл — Информатика сабағы. Қажет болса қысқа код үзінділерін (Python/Scratch блок-логикасы) мәтін ішінде келтіруге болады, бірақ өте қысқа болсын.`
+      : `Тілі: қазақ тілі.`;
+
+  const prompt = `Сен қазақстандық мектеп мұғаліміне арналған сабақ ойынын құрастырушысың.
+Пән: ${subjectName}
+Тақырып: "${state.topic}"${state.grade ? `\nСынып: ${state.grade}` : ""}
+${languageNote}
+Мазмұны нақты, осы пән мен тақырыпқа қатаң сай, оқушы жасына сай қысқа болсын. Басқа пәннің ұғымдарын араластырма.
+${schemaPrompts[state.resolvedFormat]}
+Тек таза JSON қайтар. Басқа мәтін, түсініктеме, markdown белгілерін (\`\`\`) қоспа.`;
+
+  try{
+    const response = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await response.json();
+    if(data.error) throw new Error(data.error);
+    const text = data.text || "";
+    const clean = text.replace(/```json/g,"").replace(/```/g,"").trim();
+    const parsed = JSON.parse(clean);
+    state.data = normalizeData(state.resolvedFormat, parsed);
+    await pushRecentFormat(state.resolvedFormat);
+    clearInterval(state._loadingInterval);
+    state.screen = "game";
+    render();
+  }catch(e){
+    clearInterval(state._loadingInterval);
+    state.error = "Ойынды құрастыру кезінде қате шықты (" + e.message + "). Қайта көріңіз.";
+    state.screen = "error"; render();
+  }
+}
+
+function normalizeData(fmt, raw){
+  if(fmt==="kahoot"){
+    return { qs: raw.qs.map(q=>({ q:q.q, o:q.o, a:q.a })) , idx:0, score:0, answered:false, selected:null, timeLeft:20 };
+  }
+  if(fmt==="match"){
+    const pairs = raw.p.map((p,i)=>({id:i, t:p.t, d:p.d}));
+    const terms = pairs.map(p=>({id:p.id,text:p.t})).sort(()=>Math.random()-0.5);
+    const defs = pairs.map(p=>({id:p.id,text:p.d})).sort(()=>Math.random()-0.5);
+    return { pairs, terms, defs, matched:[], selTerm:null, selDef:null };
+  }
+  if(fmt==="jeopardy"){
+    return { cats: raw.c, used:{}, teams:[{name:"1-топ",score:0},{name:"2-топ",score:0}], open:null };
+  }
+  if(fmt==="crossword"){
+    const layout = buildCrossword(raw.w);
+    return layout;
+  }
+}
+
+/* ================= KAHOOT ================= */
+let kahootTimer = null;
+function kahootHtml(){
+  const d = state.data;
+  if(d.idx >= d.qs.length){
+    return `<div class="kq-summary"><div class="big">${d.score} / ${d.qs.length}</div><p>дұрыс жауап</p></div>`;
+  }
+  const q = d.qs[d.idx];
+  const shapes = ["▲","◆","●","■"];
+  return `
+    <div class="kq-topbar">
+      <span class="kq-progress">Сұрақ ${d.idx+1} / ${d.qs.length}</span>
+      <span class="kq-score">⭐ ${d.score}</span>
+    </div>
+    <div class="kq-question">${escapeHtml(q.q)}</div>
+    <div class="kq-timer-track"><div class="kq-timer-fill" id="kqTimerFill" style="width:${(d.timeLeft/20)*100}%"></div></div>
+    <div class="kq-opts">
+      ${q.o.map((opt,i)=>`
+        <button class="kq-opt o${i} ${d.answered && i===q.a ? 'correct':''} ${d.answered && d.selected===i && i!==q.a ? 'wrong':''}" data-i="${i}" ${d.answered?'disabled':''}>
+          <span class="shape">${shapes[i]}</span>${escapeHtml(opt)}
+        </button>`).join("")}
+    </div>
+    ${d.answered ? `<button class="go-btn" style="margin-top:18px" id="kqNextBtn">Келесі →</button>` : ""}
+  `;
+}
+function bindKahoot(){
+  const d = state.data;
+  clearInterval(kahootTimer);
+  if(d.idx < d.qs.length && !d.answered){
+    kahootTimer = setInterval(()=>{
+      d.timeLeft -= 1;
+      if(d.timeLeft <= 0){ answerKahoot(-1); return; }
+      const fill = document.getElementById("kqTimerFill");
+      if(fill) fill.style.width = (d.timeLeft/20*100)+"%";
+    },1000);
+  }
+  document.querySelectorAll(".kq-opt").forEach(btn=>{
+    btn.onclick = ()=> answerKahoot(parseInt(btn.dataset.i));
+  });
+  const nextBtn = document.getElementById("kqNextBtn");
+  if(nextBtn) nextBtn.onclick = ()=>{
+    d.idx += 1; d.answered=false; d.selected=null; d.timeLeft=20;
+    renderGame();
+  };
+}
+function answerKahoot(i){
+  clearInterval(kahootTimer);
+  const d = state.data;
+  const q = d.qs[d.idx];
+  d.answered = true; d.selected = i;
+  if(i === q.a) d.score += 1;
+  renderGame();
+}
+
+/* ================= MATCH ================= */
+function matchHtml(){
+  const d = state.data;
+  const doneCount = d.matched.length;
+  return `
+    <div class="kq-topbar"><span class="kq-progress">Сәйкестендірілді: ${doneCount} / ${d.pairs.length}</span></div>
+    <div class="mt-grid">
+      <div id="termsCol">
+        ${d.terms.map(t=>`<div class="mt-item ${d.matched.includes(t.id)?'done':''} ${d.selTerm===t.id?'sel':''}" data-id="${t.id}" data-side="t">${escapeHtml(t.text)}</div>`).join("")}
+      </div>
+      <div id="defsCol">
+        ${d.defs.map(x=>`<div class="mt-item ${d.matched.includes(x.id)?'done':''} ${d.selDef===x.id?'sel':''}" data-id="${x.id}" data-side="d">${escapeHtml(x.text)}</div>`).join("")}
+      </div>
+    </div>
+    ${doneCount===d.pairs.length ? `<p style="margin-top:16px;color:var(--success);font-weight:700;">🎉 Барлығы сәйкестендірілді!</p>` : ""}
+  `;
+}
+function bindMatch(){
+  document.querySelectorAll(".mt-item").forEach(el=>{
+    el.onclick = ()=>{
+      const d = state.data;
+      const id = parseInt(el.dataset.id);
+      if(d.matched.includes(id)) return;
+      if(el.dataset.side==="t") d.selTerm = id; else d.selDef = id;
+      if(d.selTerm!=null && d.selDef!=null){
+        if(d.selTerm === d.selDef){
+          d.matched.push(d.selTerm); d.selTerm=null; d.selDef=null;
+          renderGame();
+        } else {
+          renderGame();
+          setTimeout(()=>{ d.selTerm=null; d.selDef=null; renderGame(); }, 700);
+        }
+      } else {
+        renderGame();
+      }
+    };
+  });
+}
+
+/* ================= JEOPARDY ================= */
+function jeopardyHtml(){
+  const d = state.data;
+  const cols = d.cats.length;
+  let board = `<div class="jp-board" style="grid-template-columns:repeat(${cols},1fr);">`;
+  d.cats.forEach(c=> board += `<div class="jp-cat-name">${escapeHtml(c.n)}</div>`);
+  const maxRows = Math.max(...d.cats.map(c=>c.qs.length));
+  for(let r=0;r<maxRows;r++){
+    d.cats.forEach((c,ci)=>{
+      const q = c.qs[r];
+      if(!q){ board += `<div></div>`; return; }
+      const key = ci+"-"+r;
+      const used = d.used[key];
+      board += `<div class="jp-cell ${used?'used':''}" data-key="${key}" data-ci="${ci}" data-r="${r}">${used?'':q.v}</div>`;
+    });
+  }
+  board += `</div>`;
+  const teams = `<div class="jp-score-bar">${d.teams.map((tm,i)=>`
+    <div class="jp-team">
+      <button data-team="${i}" data-delta="-100">−</button>
+      <span>${escapeHtml(tm.name)}: <b>${tm.score}</b></span>
+      <button data-team="${i}" data-delta="100">+</button>
+    </div>`).join("")}</div>`;
+  let modal = "";
+  if(d.open){
+    const q = d.cats[d.open.ci].qs[d.open.r];
+    modal = `
+      <div class="jp-modal-bg" id="jpModalBg">
+        <div class="jp-modal">
+          <div class="val">${q.v} ұпай</div>
+          <div class="q">${escapeHtml(q.q)}</div>
+          <div class="a" id="jpAnswer" style="display:none">${escapeHtml(q.a)}</div>
+          <div class="jp-modal-btns">
+            <button id="jpShowAnswer" style="background:var(--flame);color:#20140a;">Жауапты көрсету</button>
+            <button id="jpCloseModal" style="background:#fff;">Жабу</button>
+          </div>
+        </div>
+      </div>`;
+  }
+  return board + teams + modal;
+}
+function bindJeopardy(){
+  const d = state.data;
+  document.querySelectorAll(".jp-cell").forEach(el=>{
+    el.onclick = ()=>{
+      const ci = parseInt(el.dataset.ci), r = parseInt(el.dataset.r);
+      if(!el.dataset.key || d.used[el.dataset.key]) return;
+      d.open = {ci, r};
+      d.used[el.dataset.key] = true;
+      renderGame();
+    };
+  });
+  document.querySelectorAll(".jp-team button").forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      const ti = parseInt(btn.dataset.team), delta = parseInt(btn.dataset.delta);
+      d.teams[ti].score += delta;
+      renderGame();
+    };
+  });
+  const showBtn = document.getElementById("jpShowAnswer");
+  if(showBtn) showBtn.onclick = ()=>{ document.getElementById("jpAnswer").style.display="block"; };
+  const closeBtn = document.getElementById("jpCloseModal");
+  if(closeBtn) closeBtn.onclick = ()=>{ d.open=null; renderGame(); };
+}
+
+/* ================= CROSSWORD ================= */
+function buildCrossword(words){
+  const list = words.map(w=>({ word: w.w.toUpperCase().replace(/[^А-ЯЁІҢҒҮҰҚӨҺЁA-Z]/g,""), clue: w.c }))
+    .filter(w=>w.word.length>1)
+    .sort((a,b)=>b.word.length-a.word.length);
+
+  const SIZE = 26, OFF = 13;
+  const cells = {}; // "r,c" -> letter
+  const placed = [];
+
+  function canPlace(word, row, col, dir){
+    for(let i=0;i<word.length;i++){
+      const r = dir==="v" ? row+i : row;
+      const c = dir==="h" ? col+i : col;
+      const key = r+","+c;
+      if(cells[key] && cells[key] !== word[i]) return false;
+    }
+    return true;
+  }
+  function place(word, row, col, dir, clue){
+    for(let i=0;i<word.length;i++){
+      const r = dir==="v" ? row+i : row;
+      const c = dir==="h" ? col+i : col;
+      cells[r+","+c] = word[i];
+    }
+    placed.push({word, row, col, dir, clue});
+  }
+
+  list.forEach((item, idx)=>{
+    if(idx===0){ place(item.word, OFF, OFF, "h", item.clue); return; }
+    let bestSpot = null;
+    for(const p of placed){
+      for(let i=0;i<item.word.length && !bestSpot;i++){
+        for(let j=0;j<p.word.length;j++){
+          if(item.word[i] !== p.word[j]) continue;
+          const dir = p.dir==="h" ? "v" : "h";
+          const row = p.dir==="h" ? p.row - i : p.row + j - i;
+          const col = p.dir==="h" ? p.col + j - i : p.col;
+          const r0 = dir==="v" ? row : row;
+          const c0 = dir==="h" ? col : col;
+          if(canPlace(item.word, dir==="v"?row:row, dir==="h"?col:col, dir)){
+            bestSpot = {row: dir==="v"?row:row, col: dir==="h"?col:col, dir};
+            break;
+          }
+        }
+        if(bestSpot) break;
+      }
+      if(bestSpot) break;
+    }
+    if(bestSpot){
+      place(item.word, bestSpot.row, bestSpot.col, bestSpot.dir, item.clue);
+    } else {
+      const freeRow = OFF + 4 + (idx*2);
+      place(item.word, freeRow, OFF, "h", item.clue);
+    }
+  });
+
+  let minR=SIZE, maxR=0, minC=SIZE, maxC=0;
+  Object.keys(cells).forEach(k=>{
+    const [r,c] = k.split(",").map(Number);
+    minR=Math.min(minR,r); maxR=Math.max(maxR,r);
+    minC=Math.min(minC,c); maxC=Math.max(maxC,c);
+  });
+  const rows = maxR-minR+1, cols = maxC-minC+1;
+
+  const numbering = {};
+  let n=1;
+  const sortedPlaced = [...placed].sort((a,b)=> (a.row-minR)*1000+(a.col-minC) - ((b.row-minR)*1000+(b.col-minC)) );
+  const starts = {};
+  sortedPlaced.forEach(p=>{
+    const key = (p.row-minR)+","+(p.col-minC);
+    if(!starts[key]) starts[key] = n++;
+    p.num = starts[key];
+  });
+
+  return { placed: placed.map(p=>({...p,row:p.row-minR, col:p.col-minC})), rows, cols, cells, minR, minC, answers:{} };
+}
+
+function crosswordHtml(){
+  const d = state.data;
+  let grid = `<div class="cw-grid" style="grid-template-columns:repeat(${d.cols},32px);">`;
+  const cellMap = {};
+  d.placed.forEach(p=>{
+    for(let i=0;i<p.word.length;i++){
+      const r = p.dir==="v"? p.row+i : p.row;
+      const c = p.dir==="h"? p.col+i : p.col;
+      cellMap[r+","+c] = { letter:p.word[i], num: (i===0? p.num: null) };
+    }
+  });
+  for(let r=0;r<d.rows;r++){
+    for(let c=0;c<d.cols;c++){
+      const key = r+","+c;
+      if(cellMap[key]){
+        const st = d.answers[key];
+        grid += `<div class="cw-cell on ${st||''}">
+          ${cellMap[key].num?`<span class="cw-num">${cellMap[key].num}</span>`:""}
+          <input maxlength="1" data-key="${key}" data-letter="${cellMap[key].letter}" value="${st==='correct'||st==='wrong' ? (d.typed?.[key]||'') : (d.typed?.[key]||'')}">
+        </div>`;
+      } else {
+        grid += `<div class="cw-cell"></div>`;
+      }
+    }
+  }
+  grid += `</div>`;
+
+  const across = d.placed.filter(p=>p.dir==="h").sort((a,b)=>a.num-b.num);
+  const down = d.placed.filter(p=>p.dir==="v").sort((a,b)=>a.num-b.num);
+  const clues = `
+    <div class="cw-clues">
+      <h4>Көлденең</h4>
+      <ol>${across.map(p=>`<li value="${p.num}">${escapeHtml(p.clue)}</li>`).join("")}</ol>
+      <h4>Тік</h4>
+      <ol>${down.map(p=>`<li value="${p.num}">${escapeHtml(p.clue)}</li>`).join("")}</ol>
+      <button class="ghost-btn" id="cwCheckBtn">Тексеру</button>
+    </div>
+  `;
+  return `<div class="cw-wrap">${grid}${clues}</div>`;
+}
+function bindCrossword(){
+  const d = state.data;
+  d.typed = d.typed || {};
+  document.querySelectorAll(".cw-cell.on input").forEach(inp=>{
+    inp.oninput = (e)=>{
+      const key = inp.dataset.key;
+      d.typed[key] = e.target.value.toUpperCase();
+      inp.value = d.typed[key];
+    };
+  });
+  const checkBtn = document.getElementById("cwCheckBtn");
+  if(checkBtn) checkBtn.onclick = ()=>{
+    document.querySelectorAll(".cw-cell.on input").forEach(inp=>{
+      const key = inp.dataset.key;
+      const ok = (d.typed[key]||"") === inp.dataset.letter;
+      d.answers[key] = ok ? "correct" : "wrong";
+    });
+    renderGame();
+  };
+}
+
+render();
+</script>
+</body>
+</html>
